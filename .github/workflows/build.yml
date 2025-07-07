@@ -1,4 +1,4 @@
-name: Build Cordova APK (Localhost WebView + Assets)
+name: Build Cordova APK (WebView with Assets)
 
 on:
   push:
@@ -18,9 +18,8 @@ jobs:
       with:
         node-version: 18
 
-    - name: 📦 Install Cordova & Android SDK Tools
-      run: |
-        npm install -g cordova
+    - name: 📦 Install Cordova CLI
+      run: npm install -g cordova
 
     - name: 📁 Create Cordova Project & Add Plugins
       run: |
@@ -33,13 +32,13 @@ jobs:
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-whitelist
 
-    - name: 📂 Copy HTML + Assets to www/
+    - name: 📂 Copy HTML and Assets to `www/`
       run: |
         cp app.html cordovaapp/www/index.html
         cp logo.jpg cordovaapp/www/logo.jpg || true
         cp thankyou.mp3 cordovaapp/www/thankyou.mp3 || true
 
-    - name: 📝 Write config.xml
+    - name: 📝 Write Cordova config.xml
       run: |
         cat <<EOF > cordovaapp/config.xml
         <?xml version="1.0" encoding="UTF-8"?>
@@ -62,23 +61,20 @@ jobs:
         </widget>
         EOF
 
-    - name: 🧪 Check Cordova Requirements (Debug)
-      run: |
-        cd cordovaapp
-        cordova requirements || true
-
-    - name: 🛠️ Build APK (with full logs)
+    - name: 🛠️ Build APK with Cordova
       run: |
         cd cordovaapp
         cordova build android --verbose || true
 
-    - name: 🔍 Debug APK Output Location
+    - name: 🔍 Find and Copy APK to Known Path
       run: |
-        echo "Searching for all APKs..."
-        find cordovaapp -name "*.apk" || echo "❌ No APK generated"
+        APK_PATH=$(find cordovaapp -name "*.apk" | head -n 1)
+        echo "Found APK: $APK_PATH"
+        mkdir -p apk-output
+        cp "$APK_PATH" apk-output/app.apk || echo "❌ APK not found."
 
-    - name: 📤 Upload APK (if exists)
+    - name: 📤 Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: localwebview-apk
-        path: cordovaapp/platforms/android/app/build/outputs/apk/debug/app-debug.apk
+        path: apk-output/app.apk
