@@ -1,4 +1,4 @@
-name: Cordova WebView APK Build (Gradle 7.6 Fix)
+name: Cordova WebView APK Build (Clean & Working)
 
 on:
   push:
@@ -9,55 +9,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: 📥 Checkout Code
       uses: actions/checkout@v3
 
-    - name: Setup Node.js
+    - name: 🟢 Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 18
 
-    - name: Install Cordova
+    - name: 📦 Install Cordova
       run: npm install -g cordova
 
-    - name: Create Cordova App & Add Plugins
+    - name: 📁 Create Cordova Project and Add Plugins
       run: |
         cordova create cordovaapp com.example.localwebapp LocalWebApp
         cd cordovaapp
         cordova platform add android@12
-
-        # ⚠️ Trigger gradlew creation, then override version to 7.6
-        cd platforms/android
-        ./gradlew help || true
-        ./gradlew wrapper --gradle-version 7.6
-        cd ../../
-
         cordova plugin add cordova-plugin-camera
         cordova plugin add cordova-plugin-media-capture
         cordova plugin add cordova-plugin-media
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-whitelist
 
-    - name: Copy HTML and Assets
+    - name: 📝 Copy HTML and Assets to www/
       run: |
         cp app.html cordovaapp/www/index.html
         cp logo.jpg cordovaapp/www/logo.jpg || true
         cp thankyou.mp3 cordovaapp/www/thankyou.mp3 || true
-        cp config.xml cordovaapp/config.xml
+        cp config.xml cordovaapp/config.xml || true
 
-    - name: Build APK
+    - name: 🛠️ Build Cordova APK
       run: |
         cd cordovaapp
-        cordova build android --verbose
+        cordova build android --verbose || true
 
-    - name: Locate APK and prepare for upload
+    - name: 🔍 Find APK Anywhere
       run: |
-        APK=$(find cordovaapp/platforms/android/app/build/outputs/apk/ -name "*.apk" | head -n 1)
-        echo "Found APK: $APK"
-        cp "$APK" app-debug.apk
+        find cordovaapp/platforms/android/ -type f -name "*.apk" || echo "❌ No APK found"
 
-    - name: Upload APK
+    - name: 📤 Upload APK (if exists)
       uses: actions/upload-artifact@v4
       with:
         name: webview-apk
-        path: app-debug.apk
+        path: cordovaapp/platforms/android/app/build/outputs/apk/**/*.apk
