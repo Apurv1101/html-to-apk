@@ -1,4 +1,4 @@
-name: Build Cordova APK (Local IP WebView)
+name: Build Cordova APK (Localhost WebView)
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
 
 jobs:
   build:
-    name: Cordova Android Build
     runs-on: ubuntu-latest
+    name: Cordova Android Build
 
     steps:
     - name: 📥 Checkout Code
@@ -21,53 +21,6 @@ jobs:
     - name: 📦 Install Cordova
       run: npm install -g cordova
 
-    - name: 📁 Create Cordova Project & Add Plugins
+    - name: 📁 Create Cordova Project in `cordovaapp/`
       run: |
-        cordova create app com.example.localwebapp LocalWebApp
-        cd app
-        cordova platform add android@12
-        cordova plugin add cordova-plugin-camera
-        cordova plugin add cordova-plugin-media-capture
-        cordova plugin add cordova-plugin-media
-        cordova plugin add cordova-plugin-android-permissions
-        cordova plugin add cordova-plugin-whitelist
-
-    - name: 📝 Overwrite config.xml with Localhost WebView
-      run: |
-        cat <<EOF > app/config.xml
-        <?xml version="1.0" encoding="UTF-8"?>
-        <widget id="com.example.localwebapp" version="1.0.0"
-            xmlns="http://www.w3.org/ns/widgets"
-            xmlns:cdv="http://cordova.apache.org/ns/1.0"
-            xmlns:android="http://schemas.android.com/apk/res/android">
-          <name>LocalWebApp</name>
-          <description>Loads local server via WebView</description>
-          <content src="http://127.0.0.1:5000/" />
-          <access origin="*" />
-          <allow-navigation href="http://127.0.0.1:*" />
-          <preference name="AndroidInsecureFileModeEnabled" value="true" />
-          <platform name="android">
-            <edit-config file="AndroidManifest.xml" mode="merge" target="/manifest/uses-permission">
-              <uses-permission android:name="android.permission.CAMERA" />
-              <uses-permission android:name="android.permission.INTERNET" />
-            </edit-config>
-          </platform>
-        </widget>
-        EOF
-
-    - name: 📂 Add HTML Assets (logo, mp3, etc.)
-      run: |
-        cp -r app.html app/www/index.html
-        cp logo.jpg app/www/ || true
-        cp thank_you.mp3 app/www/ || true
-
-    - name: 🛠️ Build APK (Cordova)
-      run: |
-        cd app
-        cordova build android --verbose || true
-
-    - name: 📤 Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: localwebapp-apk
-        path: "**/*.apk"
+        cordova create cordovaapp com.example.localwebapp LocalWeb
