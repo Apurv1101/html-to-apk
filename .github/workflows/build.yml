@@ -1,4 +1,4 @@
-name: Build Cordova APK (Localhost WebView)
+name: Build Cordova APK (WebView to Localhost + Assets)
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
     - name: 📦 Install Cordova
       run: npm install -g cordova
 
-    - name: 📁 Create Cordova Project in `cordovaapp/`
+    - name: 📁 Create Cordova Project & Add Plugins
       run: |
         cordova create cordovaapp com.example.localwebapp LocalWebApp
         cd cordovaapp
@@ -32,7 +32,13 @@ jobs:
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-whitelist
 
-    - name: 📝 Overwrite config.xml (WebView to 127.0.0.1:5000)
+    - name: 📂 Add Your HTML and Assets
+      run: |
+        cp app.html cordovaapp/www/index.html
+        cp logo.jpg cordovaapp/www/logo.jpg || true
+        cp thankyou.mp3 cordovaapp/www/thankyou.mp3 || true
+
+    - name: 📝 Write config.xml for WebView to 127.0.0.1
       run: |
         cat <<EOF > cordovaapp/config.xml
         <?xml version="1.0" encoding="UTF-8"?>
@@ -56,24 +62,18 @@ jobs:
         </widget>
         EOF
 
-    - name: 📂 Copy HTML & Assets
+    - name: 🧱 Prepare Gradle
       run: |
-        mkdir -p cordovaapp/www
-        cp app.html cordovaapp/www/index.html || true
-        cp logo.jpg cordovaapp/www/ || true
-        cp thank_you.mp3 cordovaapp/www/ || true
+        cd cordovaapp/platforms/android
+        chmod +x gradlew
 
-    - name: 🛠️ Build Cordova APK
+    - name: 🛠️ Build APK with Gradle
       run: |
         cd cordovaapp
-        cordova build android --verbose
-
-    - name: 🔍 Find APK
-      run: |
-        find cordovaapp/platforms/android/app/build/outputs/apk/ -name "*.apk" || echo "❌ APK not found"
+        ./platforms/android/gradlew cdvBuildDebug --stacktrace --info || true
 
     - name: 📤 Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: localwebview-apk
-        path: cordovaapp/platforms/android/app/build/outpu
+        path: cordovaapp/platforms/android/app/build/outputs/apk/debug/app-debug.apk
