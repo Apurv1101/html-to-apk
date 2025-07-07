@@ -6,8 +6,8 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     name: Cordova Android Build
+    runs-on: ubuntu-latest
 
     steps:
     - name: 📥 Checkout Code
@@ -23,4 +23,57 @@ jobs:
 
     - name: 📁 Create Cordova Project in `cordovaapp/`
       run: |
-        cordova create cordovaapp com.example.localwebapp LocalWeb
+        cordova create cordovaapp com.example.localwebapp LocalWebApp
+        cd cordovaapp
+        cordova platform add android@12
+        cordova plugin add cordova-plugin-camera
+        cordova plugin add cordova-plugin-media-capture
+        cordova plugin add cordova-plugin-media
+        cordova plugin add cordova-plugin-android-permissions
+        cordova plugin add cordova-plugin-whitelist
+
+    - name: 📝 Overwrite config.xml (WebView to 127.0.0.1:5000)
+      run: |
+        cat <<EOF > cordovaapp/config.xml
+        <?xml version="1.0" encoding="UTF-8"?>
+        <widget id="com.example.localwebapp" version="1.0.0"
+            xmlns="http://www.w3.org/ns/widgets"
+            xmlns:cdv="http://cordova.apache.org/ns/1.0"
+            xmlns:android="http://schemas.android.com/apk/res/android">
+          <name>LocalWebApp</name>
+          <description>WebView that loads phone's local server</description>
+          <content src="http://127.0.0.1:5000/" />
+          <access origin="*" />
+          <allow-navigation href="http://127.0.0.1:*" />
+          <preference name="AndroidInsecureFileModeEnabled" value="true" />
+          <platform name="android">
+            <edit-config file="AndroidManifest.xml" mode="merge" target="/manifest/uses-permission">
+              <uses-permission android:name="android.permission.CAMERA" />
+              <uses-permission android:name="android.permission.INTERNET" />
+            </edit-config>
+          </platform>
+          <plugin name="cordova-plugin-whitelist" />
+        </widget>
+        EOF
+
+    - name: 📂 Copy HTML & Assets
+      run: |
+        mkdir -p cordovaapp/www
+        cp app.html cordovaapp/www/index.html || true
+        cp logo.jpg cordovaapp/www/ || true
+        cp thank_you.mp3 cordovaapp/www/ || true
+
+    - name: 🛠️ Build Cordova APK
+      run: |
+        cd cordovaapp
+        cordova build android --verbose
+
+    - name: 🔍 Find APK
+      run: |
+        find cordovaapp/platforms/android/app/build/outputs/apk/ -name "*.apk" || echo "❌ APK not found"
+
+    - name: 📤 Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: localwebview-apk
+        path: cordovaapp/platforms/android/app/build/outpu
