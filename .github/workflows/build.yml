@@ -1,4 +1,4 @@
-name: Build Cordova APK (WebView to Localhost + Assets)
+name: Build Cordova APK (Localhost WebView + Assets)
 
 on:
   push:
@@ -32,13 +32,13 @@ jobs:
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-whitelist
 
-    - name: 📂 Add Your HTML and Assets
+    - name: 📂 Copy HTML and Assets
       run: |
         cp app.html cordovaapp/www/index.html
         cp logo.jpg cordovaapp/www/logo.jpg || true
         cp thankyou.mp3 cordovaapp/www/thankyou.mp3 || true
 
-    - name: 📝 Write config.xml for WebView to 127.0.0.1
+    - name: 📝 Write config.xml (WebView to localhost)
       run: |
         cat <<EOF > cordovaapp/config.xml
         <?xml version="1.0" encoding="UTF-8"?>
@@ -47,7 +47,6 @@ jobs:
             xmlns:cdv="http://cordova.apache.org/ns/1.0"
             xmlns:android="http://schemas.android.com/apk/res/android">
           <name>LocalWebApp</name>
-          <description>WebView that loads phone's local server</description>
           <content src="http://127.0.0.1:5000/" />
           <access origin="*" />
           <allow-navigation href="http://127.0.0.1:*" />
@@ -62,15 +61,14 @@ jobs:
         </widget>
         EOF
 
-    - name: 🧱 Prepare Gradle
-      run: |
-        cd cordovaapp/platforms/android
-        chmod +x gradlew
-
-    - name: 🛠️ Build APK with Gradle
+    - name: 🛠️ Build APK (Cordova handles gradle)
       run: |
         cd cordovaapp
-        ./platforms/android/gradlew cdvBuildDebug --stacktrace --info || true
+        cordova build android --verbose || true
+
+    - name: 🔍 Show APK Path
+      run: |
+        find cordovaapp -name "*.apk" || echo "❌ No APK generated."
 
     - name: 📤 Upload APK
       uses: actions/upload-artifact@v4
