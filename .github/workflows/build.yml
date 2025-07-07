@@ -1,4 +1,4 @@
-name: Cordova WebView APK Build
+name: Cordova WebView APK Build (Gradle 7.6 Fix)
 
 on:
   push:
@@ -20,18 +20,24 @@ jobs:
     - name: Install Cordova
       run: npm install -g cordova
 
-    - name: Create Cordova App
+    - name: Create Cordova App & Add Plugins
       run: |
         cordova create cordovaapp com.example.localwebapp LocalWebApp
         cd cordovaapp
         cordova platform add android@12
+
+        # ⛏️ Fix: Set Gradle version to 7.6 to avoid breaking on Gradle 8
+        cd platforms/android
+        ./gradlew wrapper --gradle-version 7.6
+        cd ../../
+
         cordova plugin add cordova-plugin-camera
         cordova plugin add cordova-plugin-media-capture
         cordova plugin add cordova-plugin-media
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-whitelist
 
-    - name: Copy files and overwrite config
+    - name: Copy HTML and Assets
       run: |
         cp app.html cordovaapp/www/index.html
         cp logo.jpg cordovaapp/www/logo.jpg || true
@@ -43,10 +49,10 @@ jobs:
         cd cordovaapp
         cordova build android --verbose
 
-    - name: Find APK and move to root folder
+    - name: Locate APK and copy for upload
       run: |
         APK=$(find cordovaapp/platforms/android/app/build/outputs/apk/ -name "*.apk" | head -n 1)
-        echo "Located APK: $APK"
+        echo "Found APK: $APK"
         cp "$APK" app-debug.apk
 
     - name: Upload APK
