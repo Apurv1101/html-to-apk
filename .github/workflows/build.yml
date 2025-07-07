@@ -1,4 +1,4 @@
-name: Build Cordova APK (WebView with Assets)
+name: Cordova WebView APK Build
 
 on:
   push:
@@ -6,22 +6,21 @@ on:
 
 jobs:
   build:
-    name: Cordova Android Build
     runs-on: ubuntu-latest
 
     steps:
-    - name: 📥 Checkout Code
+    - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: 🟢 Setup Node.js
+    - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 18
 
-    - name: 📦 Install Cordova CLI
+    - name: Install Cordova
       run: npm install -g cordova
 
-    - name: 📁 Create Cordova Project & Add Plugins
+    - name: Create Cordova App
       run: |
         cordova create cordovaapp com.example.localwebapp LocalWebApp
         cd cordovaapp
@@ -32,49 +31,26 @@ jobs:
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-whitelist
 
-    - name: 📂 Copy HTML and Assets to `www/`
+    - name: Copy files and overwrite config
       run: |
         cp app.html cordovaapp/www/index.html
         cp logo.jpg cordovaapp/www/logo.jpg || true
         cp thankyou.mp3 cordovaapp/www/thankyou.mp3 || true
+        cp config.xml cordovaapp/config.xml
 
-    - name: 📝 Write Cordova config.xml
-      run: |
-        cat <<EOF > cordovaapp/config.xml
-        <?xml version="1.0" encoding="UTF-8"?>
-        <widget id="com.example.localwebapp" version="1.0.0"
-            xmlns="http://www.w3.org/ns/widgets"
-            xmlns:cdv="http://cordova.apache.org/ns/1.0"
-            xmlns:android="http://schemas.android.com/apk/res/android">
-          <name>LocalWebApp</name>
-          <content src="http://127.0.0.1:5000/" />
-          <access origin="*" />
-          <allow-navigation href="http://127.0.0.1:*" />
-          <preference name="AndroidInsecureFileModeEnabled" value="true" />
-          <platform name="android">
-            <edit-config file="AndroidManifest.xml" mode="merge" target="/manifest/uses-permission">
-              <uses-permission android:name="android.permission.CAMERA" />
-              <uses-permission android:name="android.permission.INTERNET" />
-            </edit-config>
-          </platform>
-          <plugin name="cordova-plugin-whitelist" />
-        </widget>
-        EOF
-
-    - name: 🛠️ Build APK with Cordova
+    - name: Build APK
       run: |
         cd cordovaapp
-        cordova build android --verbose || true
+        cordova build android --verbose
 
-    - name: 🔍 Find and Copy APK to Known Path
+    - name: Find APK and move to root folder
       run: |
-        APK_PATH=$(find cordovaapp -name "*.apk" | head -n 1)
-        echo "Found APK: $APK_PATH"
-        mkdir -p apk-output
-        cp "$APK_PATH" apk-output/app.apk || echo "❌ APK not found."
+        APK=$(find cordovaapp/platforms/android/app/build/outputs/apk/ -name "*.apk" | head -n 1)
+        echo "Located APK: $APK"
+        cp "$APK" app-debug.apk
 
-    - name: 📤 Upload APK
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: localwebview-apk
-        path: apk-output/app.apk
+        name: webview-apk
+        path: app-debug.apk
