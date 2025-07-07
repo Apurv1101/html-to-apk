@@ -18,8 +18,9 @@ jobs:
       with:
         node-version: 18
 
-    - name: 📦 Install Cordova
-      run: npm install -g cordova
+    - name: 📦 Install Cordova & Android SDK Tools
+      run: |
+        npm install -g cordova
 
     - name: 📁 Create Cordova Project & Add Plugins
       run: |
@@ -32,13 +33,13 @@ jobs:
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-whitelist
 
-    - name: 📂 Copy HTML and Assets
+    - name: 📂 Copy HTML + Assets to www/
       run: |
         cp app.html cordovaapp/www/index.html
         cp logo.jpg cordovaapp/www/logo.jpg || true
         cp thankyou.mp3 cordovaapp/www/thankyou.mp3 || true
 
-    - name: 📝 Write config.xml (WebView to localhost)
+    - name: 📝 Write config.xml
       run: |
         cat <<EOF > cordovaapp/config.xml
         <?xml version="1.0" encoding="UTF-8"?>
@@ -61,16 +62,22 @@ jobs:
         </widget>
         EOF
 
-    - name: 🛠️ Build APK (Cordova handles gradle)
+    - name: 🧪 Check Cordova Requirements (Debug)
+      run: |
+        cd cordovaapp
+        cordova requirements || true
+
+    - name: 🛠️ Build APK (with full logs)
       run: |
         cd cordovaapp
         cordova build android --verbose || true
 
-    - name: 🔍 Show APK Path
+    - name: 🔍 Debug APK Output Location
       run: |
-        find cordovaapp -name "*.apk" || echo "❌ No APK generated."
+        echo "Searching for all APKs..."
+        find cordovaapp -name "*.apk" || echo "❌ No APK generated"
 
-    - name: 📤 Upload APK
+    - name: 📤 Upload APK (if exists)
       uses: actions/upload-artifact@v4
       with:
         name: localwebview-apk
