@@ -1,4 +1,4 @@
-name: Cordova APK Build (Final Fix)
+name: Cordova WebView APK Build (Error Reveal & Fix)
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
       with:
         node-version: 18
 
-    - name: 📦 Install Cordova
+    - name: 📦 Install Cordova CLI
       run: npm install -g cordova
 
     - name: 🧱 Create Cordova App and Add Plugins
@@ -31,27 +31,27 @@ jobs:
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-whitelist
 
-    - name: 📂 Copy HTML & Assets
+    - name: 📂 Copy Your HTML and Assets
       run: |
         cp app.html cordovaapp/www/index.html
         cp logo.jpg cordovaapp/www/logo.jpg || true
         cp thankyou.mp3 cordovaapp/www/thankyou.mp3 || true
         cp config.xml cordovaapp/config.xml || true
 
-    - name: 🛠️ Build APK with Cordova
+    - name: 🛠️ Build APK (no silent fail)
       run: |
         cd cordovaapp
-        cordova build android --verbose || true
+        cordova build android --verbose
 
-    - name: 🔍 Find and Copy First APK
+    - name: 🔍 Locate the APK
       run: |
         APK_PATH=$(find cordovaapp -type f -name "*.apk" | head -n 1)
-        echo "Found APK: $APK_PATH"
+        echo "✅ Found APK: $APK_PATH"
         mkdir -p apk
-        cp "$APK_PATH" apk/app.apk || echo "❌ No APK found to copy."
+        cp "$APK_PATH" apk/app.apk
 
-    - name: 📤 Upload APK (from dynamic path)
+    - name: 📤 Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: webview-apk
+        name: built-apk
         path: apk/app.apk
